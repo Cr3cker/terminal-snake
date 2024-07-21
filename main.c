@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <ncurses.h>
 #include <unistd.h>
-#include <locale.h>
 
 #define WIDTH 40
 #define HEIGHT 15
@@ -26,21 +25,25 @@ void start_game(unsigned int grid[HEIGHT][WIDTH]);
 void spawn_food(unsigned int grid[HEIGHT][WIDTH], int eaten);
 
 int main() {
-    snake_part body[SNAKE];
     initscr();
-    setlocale(LC_ALL, "");
     cbreak();
     noecho();
+    srand(time(NULL));
     timeout(100); 
+    start_color();
+    init_pair(1, COLOR_RED, COLOR_BLACK);
+
+    snake_part body[SNAKE];
     int direction = RIGHT;
     unsigned int grid[HEIGHT][WIDTH] = { 0 };
-    srand(time(NULL));
-    int snake_x = rand() % (HEIGHT - 1);
-    int snake_y = rand() % (WIDTH - 1);
+    int snake_x = rand() % (HEIGHT - 2) + 1;
+    int snake_y = rand() % (WIDTH - 2) + 1;
     body[0].first = snake_x;
     body[0].second = snake_y;
     int length = 1;
     int eaten = 1;
+    int score = 0;
+
     create_walls(grid);
     spawn_food(grid, eaten);
 
@@ -62,43 +65,46 @@ int main() {
                 break;
         }
 
-        int old_x = body[0].first;
-        int old_y = body[0].second;
+        int new_x = body[0].first;
+        int new_y = body[0].second;
 
         switch (direction) {
             case UP:
-                body[0].first--;
+                new_x--;
                 break;
             case DOWN:
-                body[0].first++;
+                new_x++;
                 break;
             case RIGHT:
-                body[0].second++;
+                new_y++;
                 break;
             case LEFT:
-                body[0].second--;
+                new_y--;
                 break;
         }
-        
-        if (body[0].first < 1) body[0].first = 1;
-        else if (body[0].first >= HEIGHT - 1) body[0].first = HEIGHT - 2;
-        else if (body[0].second < 1) body[0].second = 1;
-        else if (body[0].second >= WIDTH - 1) body[0].second = WIDTH - 2;
 
-        if (grid[body[0].first][body[0].second] == 3) {
-            length++;
-            if (length > SNAKE) {
-                length = SNAKE;
-            } else {
-                for (int i = length - 1; i > 0; i--) {
-                    body[i] = body[i - 1];
+        if (new_x < 1 || new_x >= HEIGHT - 1 || new_y < 1 || new_y >= WIDTH - 1) break; 
+            for (int i = 1; i < length; i++) { 
+                if (new_x == body[i].first && new_y == body[i].second) {
+                    endwin(); 
+                    printf("Game Over! Collision with body.\n");
+                    return 0;
                 }
             }
+
+        for (int i = length; i > 0; i--) {
+            body[i] = body[i - 1];
+        }
+        body[0].first = new_x;
+        body[0].second = new_y;
+
+        if (grid[new_x][new_y] == 3) {
+            length++;
+            score++;
+            eaten = 1;
             spawn_food(grid, eaten);  
         } else {
-            for (int i = length - 1; i > 0; i--) {
-                body[i] = body[i - 1];
-            }
+            eaten = 0;
         }
 
         update_grid(grid, body, length);
@@ -106,7 +112,7 @@ int main() {
         grid_render(grid, body[0].first, body[0].second, body, length);
         refresh();
 
-        usleep(1000);
+        usleep(100000 - (1000 * score));
     }
     endwin();
     return 0;
@@ -123,9 +129,13 @@ void create_walls(unsigned int grid[HEIGHT][WIDTH]) {
 void grid_render(unsigned int grid[HEIGHT][WIDTH], int snake_x, int snake_y, snake_part* body, int length) {
     for (int i = 0; i < HEIGHT; i++) {
         for (int j = 0; j < WIDTH; j++) {
-            if (i == 0 || i == HEIGHT - 1 || j == 0 || j == WIDTH - 1) addch('X' | A_BOLD);
+            if (i == 0 || i == HEIGHT - 1 || j == 0 || j == WIDTH - 1) addch('#' | A_BOLD);
             else if (!grid[i][j]) addch(' ');
-            else if (grid[i][j] == 2) addstr('*' | A_BOLD);
+            else if (grid[i][j] == 2) {
+                attron(COLOR_PAIR(1));
+                addch('*' | A_BOLD);
+                attroff(COLOR_PAIR(1));
+            }
             else if (grid[i][j] == 3) addch('.' | A_BOLD);
         }
         addch('\n');
@@ -145,7 +155,10 @@ void update_grid(unsigned int grid[HEIGHT][WIDTH], snake_part* body, int length)
 }
 
 void spawn_food(unsigned int grid[HEIGHT][WIDTH], int eaten) {
-    int food_x = rand() % (HEIGHT - 1);
-    int food_y = rand() % (WIDTH - 1);
+    int food_x, food_y;
+    do {
+        food_x = rand() % (HEIGHT - 2) + 1;
+        food_y = rand() % (WIDTH - 2) + 1;
+    } while (grid[food_x][food_y] != 0);
     if (eaten) grid[food_x][food_y] = 3;
 }
