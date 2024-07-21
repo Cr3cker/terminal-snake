@@ -6,7 +6,7 @@
 
 #define WIDTH 40
 #define HEIGHT 15
-#define SNAKE 10
+#define SNAKE 100
 #define UP 0
 #define DOWN 1
 #define RIGHT 2
@@ -28,6 +28,7 @@ int main() {
     initscr();
     cbreak();
     noecho();
+    curs_set(0);
     srand(time(NULL));
     timeout(100); 
     start_color();
