@@ -20,13 +20,15 @@ typedef struct {
     int second;
 } snake_part;
 
-void grid_render(unsigned int grid[HEIGHT][WIDTH], int snake_x, int snake_y, snake_part* body, int length);
-void update_grid(unsigned int grid[HEIGHT][WIDTH], snake_part* body, int length);
-void create_walls(unsigned int grid[HEIGHT][WIDTH]);
-void start_game(unsigned int grid[HEIGHT][WIDTH]);
-void spawn_food(unsigned int grid[HEIGHT][WIDTH]);
+unsigned int grid[HEIGHT][WIDTH] = {0};
+
+void grid_render(int snake_x, int snake_y, snake_part* body, int length);
+void update_grid(snake_part* body, int length);
+void create_walls();
+void start_game();
+void spawn_food();
 int check_collision(int new_x, int new_y, snake_part* body, int length);
-void check_food_eaten(unsigned int grid[HEIGHT][WIDTH], int new_x, int new_y, int* length, int* score, int* eaten);
+void check_food_eaten(int new_x, int new_y, int* length, int* score, int* eaten);
 
 int main() {
     initscr();
@@ -40,7 +42,6 @@ int main() {
 
     snake_part body[SNAKE_LENGTH];
     int direction = RIGHT;
-    unsigned int grid[HEIGHT][WIDTH] = { 0 };
     int snake_x = rand() % (HEIGHT - 2) + 1;
     int snake_y = rand() % (WIDTH - 2) + 1;
     body[0].first = snake_x;
@@ -100,10 +101,10 @@ int main() {
         body[0].first = new_x;
         body[0].second = new_y;
 
-        check_food_eaten(grid, new_x, new_y, &length, &score, &eaten);
-        update_grid(grid, body, length);
+        check_food_eaten(new_x, new_y, &length, &score, &eaten);
+        update_grid(body, length);
         clear();
-        grid_render(grid, body[0].first, body[0].second, body, length);
+        grid_render(body[0].first, body[0].second, body, length);
         refresh();
 
         usleep(100000 - (1000 * score));
@@ -112,7 +113,7 @@ int main() {
     return 0;
 }
 
-void check_food_eaten(unsigned int grid[HEIGHT][WIDTH], int new_x, int new_y, int* length, int* score, int* eaten) {
+void check_food_eaten(int new_x, int new_y, int* length, int* score, int* eaten) {
     if (grid[new_x][new_y] == 3) {
         (*length)++;
         (*score)++;
@@ -127,7 +128,7 @@ int check_collision(int new_x, int new_y, snake_part* body, int length) {
     return 0;
 }
 
-void create_walls(unsigned int grid[HEIGHT][WIDTH]) {
+void create_walls() {
     for (int i = 0; i < HEIGHT; i++) {
         for (int j = 0; j < WIDTH; j++) {
             if (i == 0 || i == HEIGHT - 1 || j == 0 || j == WIDTH - 1) grid[i][j] ^= 1;
@@ -135,7 +136,7 @@ void create_walls(unsigned int grid[HEIGHT][WIDTH]) {
     }
 }
 
-void grid_render(unsigned int grid[HEIGHT][WIDTH], int snake_x, int snake_y, snake_part* body, int length) {
+void grid_render(int snake_x, int snake_y, snake_part* body, int length) {
     for (int i = 0; i < HEIGHT; i++) {
         for (int j = 0; j < WIDTH; j++) {
             if (i == 0 || i == HEIGHT - 1 || j == 0 || j == WIDTH - 1) addch('#' | A_BOLD);
@@ -151,7 +152,7 @@ void grid_render(unsigned int grid[HEIGHT][WIDTH], int snake_x, int snake_y, sna
     }
 }
 
-void update_grid(unsigned int grid[HEIGHT][WIDTH], snake_part* body, int length) {
+void update_grid(snake_part* body, int length) {
     for (int i = 0; i < HEIGHT; i++) {
         for (int j = 0; j < WIDTH; j++) {
             if (grid[i][j] == SNAKE) grid[i][j] = 0;
@@ -163,7 +164,7 @@ void update_grid(unsigned int grid[HEIGHT][WIDTH], snake_part* body, int length)
     }
 }
 
-void spawn_food(unsigned int grid[HEIGHT][WIDTH]) {
+void spawn_food() {
     int food_x, food_y;
     do {
         food_x = rand() % (HEIGHT - 2) + 1;
